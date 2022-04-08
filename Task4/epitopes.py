@@ -1,25 +1,45 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 import pandas as pd
+import numpy as np
+verb = True # to print debug info
 
+#1. Load the data
 haplotypes = ['MHC_1_A','MHC_1_B','MHC_1_C','MHC_2_DP','MHC_2_DQ','MHC_2_DR']
+# There is one epitope file per haplotype
 
-# data still work in progress:
-# TODO
-# class 2 epitopes missing
-# not all proteins in file
+# Public repository with all the data: https://gitlab.com/ivan_ea/epitopes
+DATA_URL = 'https://gitlab.com/ivan_ea/epitopes/-/raw/master/'
 
-data_url = 'https://gitlab.com/ivan_ea/epitopes/-/raw/master/'
+if verb: print('Fetching proteins file...')
+proteins_df = pd.read_csv(DATA_URL+'proteins.csv')
 
-proteins_df = pd.read_csv(data_url+'proteins.csv')
-print(proteins_df.head()) # debug info
-
+if verb:
+  print('Beginning of the proteins dataframe:')
+  print(proteins_df.head()) 
+  print('It has {} unique proteins'.format(len(proteins_df)))
+if verb:
+  print('\n Explanation of the columns of the epitope files:')
+  print(pd.read_csv(DATA_URL+'explain_columns.csv'), end='\n')
 
 epitopes_dfs = {}
 
-for h in haplotypes[0:3]:
-  epitopes_dfs[h] = pd.read_csv(data_url+h+'.csv')
-  
-print(epitopes_dfs['MHC_1_A'].head()) #debug info
+for h in haplotypes: # Takes like 5 seconds 
+  if verb: print('Fetching {}.csv...'.format(h), end=' ')
+  epitopes_dfs[h] = pd.read_csv(DATA_URL+h+'.csv')
+  if verb: print('It has {} epitopes'.format(len(epitopes_dfs[h])))
+
+if verb:
+  print('\n Beginning of the {} epitopes dataframe:'.format(h))
+  print(epitopes_dfs[h].head()) 
+
+# 2.
+# TODO sliding window and generation of dataset for training (1 per haplotype)
+# Output: 6 .csv files with these header and content:
+#  30aa_seq,contains_epitope?
+#  EJEMPLO_DE_SEQUENCIA_DE_30_AA,0
+#  JEMPLO_DE_SEQUENCIA_DE_30_AAs,1
+#  etc...
+
+
 
