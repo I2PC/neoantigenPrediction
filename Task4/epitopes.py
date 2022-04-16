@@ -33,7 +33,26 @@ if verb:
   print('\n Beginning of the {} epitopes dataframe:'.format(h))
   print(epitopes_dfs[h].head()) 
 
-# 2.
+
+# 2. Once data is loaded (proteins_df & epitopes_dfs) we now search what epitopes are contained into each protein
+# by searching the protein_id in each epitope_df
+
+protein_epitope_dfs = {}
+for index in range(len(proteins_df)):
+  protein_id = proteins_df.loc[index,'protein_id']
+  #Once we get the protein_id we search for that protein in the haplotypes dfs, and create a new dataframe with the 
+  #epitopes found for that protein
+  #print('Protein {}'.format(protein_id))
+  for h in haplotypes:
+    protein_epitope_dfs[h] = epitopes_dfs[h].loc[epitopes_dfs[h]['protein_id'] == protein_id]
+    #print('Contains {} possible epitopes for haplotype {}'.format(len(protein_epitope_dfs[h]), h))
+if verb:
+  print('\n Beginning of the {} epitopes dataframe:'.format(h))
+  print(protein_epitopes_dfs[h].head()) 
+
+
+
+# 3.
 # TODO sliding window and generation of dataset for training (1 per haplotype)
 # Output: 6 .csv files with these header and content:
 #  30aa_seq,contains_epitope?
