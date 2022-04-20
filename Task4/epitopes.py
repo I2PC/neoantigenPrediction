@@ -3,10 +3,21 @@
 import pandas as pd
 import numpy as np
 import time
+import sys
 verb = True # to print debug info
 
-#1. Load the data
+# 0. Select the haplotype
 haplotypes = ['MHC_1_A','MHC_1_B','MHC_1_C','MHC_2_DP','MHC_2_DQ','MHC_2_DR']
+
+if int(sys.argv[1]) > 5 or int(sys.argv[1]) < 0:
+  print('ERROR: The argument must be a number between 0 and 5')
+  sys.exit(1)
+h_index = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+
+if verb: print('Generating epitope/non-epitope data for haplotype {}: {}'.
+  format(h_index,haplotypes[h_index]),end='\n\n')
+
+# 1. Load the data
 # There is one epitope file per haplotype
 
 # Public repository with all the data: https://gitlab.com/ivan_ea/epitopes
@@ -21,19 +32,22 @@ if verb:
   print('It has {} unique proteins'.format(len(proteins_df)))
 if verb:
   print('\n Explanation of the columns of the epitope files:')
-  print(pd.read_csv(DATA_URL+'explain_columns.csv'), end='\n')
+  print(pd.read_csv(DATA_URL+'explain_columns.csv'), end='\n\n')
 
 epitopes_dfs = {}
 
 for h in haplotypes: # Takes like 5 seconds 
   if verb: print('Fetching {}.csv...'.format(h), end=' ')
   epitopes_dfs[h] = pd.read_csv(DATA_URL+h+'.csv')
+  # remove epitopes without start and end information (only 252 out of 600k)
+  epitopes_dfs[h].dropna(subset=['start'], inplace = True) 
   if verb: print('It has {} epitopes'.format(len(epitopes_dfs[h])))
 
 if verb:
   print('\n Beginning of the {} epitopes dataframe:'.format(h))
   print(epitopes_dfs[h].head()) 
 
+sys.exit(0)
 
 # 2. Once data is loaded we want to create a new dataframe containing the epitope, the aa chain and the protein id
 # TAKES A LOT OF TIME 3,5 H 
