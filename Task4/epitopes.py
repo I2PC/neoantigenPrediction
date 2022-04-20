@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 import numpy as np
+import time
 verb = True # to print debug info
 
 #1. Load the data
@@ -34,22 +35,31 @@ if verb:
   print(epitopes_dfs[h].head()) 
 
 
-# 2. Once data is loaded (proteins_df & epitopes_dfs) we now search what epitopes are contained into each protein
-# by searching the protein_id in each epitope_df
+# 2. Once data is loaded we want to create a new dataframe containing the epitope, the aa chain and the protein id
+# TAKES A LOT OF TIME 3,5 H 
 
-protein_epitope_dfs = {}
-for index in range(len(proteins_df)):
-  protein_id = proteins_df.loc[index,'protein_id']
+start_time = time.time()
+
+protein_epitope_df = pd.DataFrame()
+
+for index,protein in proteins_df.iterrows():
+  protein_id = protein['protein_id']
+  aa_chain = protein['aas']
   #Once we get the protein_id we search for that protein in the haplotypes dfs, and create a new dataframe with the 
   #epitopes found for that protein
-  #print('Protein {}'.format(protein_id))
   for h in haplotypes:
-    protein_epitope_dfs[h] = epitopes_dfs[h].loc[epitopes_dfs[h]['protein_id'] == protein_id]
-    #print('Contains {} possible epitopes for haplotype {}'.format(len(protein_epitope_dfs[h]), h))
-if verb:
-  print('\n Beginning of the {} epitopes dataframe:'.format(h))
-  print(protein_epitopes_dfs[h].head()) 
+    epitopes = epitopes_dfs[h].loc[epitopes_dfs[h]['protein_id'] == protein_id]
+    for index, epi in epitopes.iterrows():
+      entry = {'protein_id': protein_id, 'SEQ': aa_chain, 'epitope':epi['epitope']}
+      protein_epitope_df = protein_epitope_df.append(entry, ignore_index=True)
 
+protein_epitope_df.to_csv('epitope_sequence.csv')
+
+if verb:
+  print('\n Beginning of the epitopes/protein dataframe:')
+  print(protein_epitope_df.head()) 
+
+print("--- %s seconds ---" % (time.time() - start_time))
 
 
 # 3.
