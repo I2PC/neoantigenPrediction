@@ -31,7 +31,7 @@ epitopes_dfs = {}
 for h in haplotypes: # Takes like 5 seconds 
   if verb: print('Fetching {}.csv...'.format(h), end=' ')
   epitopes_dfs[h] = pd.read_csv(DATA_URL+h+'.csv')
-  # remove epitopes without start and end information (only 252 out of 600k)
+  # remove epitopes without start and end information (only 250 out of 600k)
   epitopes_dfs[h].dropna(subset=['start'], inplace = True) 
   # now columns 'start' and 'end' can be treated as ints 
   epitopes_dfs[h] = epitopes_dfs[h].astype({'start': int, 'end': int})
