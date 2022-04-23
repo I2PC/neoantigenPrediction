@@ -63,44 +63,51 @@ output_name = 'trainig_indep_'+h+'.csv'
 pr_e = 20 # print info every n proteins
 WIN_SIZE=30
 
-def condition_1(window,epitopes_in):
+def condition_1(window,epitopes_inside):
   '''Check if whole epitope inside the window'''
-  for e in epitopes_in.itertuples():
-    #print(window,'||',e[1],(window[1] <= e[2]) and (window[2] >= e[3]))#debug
-    if (window[1] <= e[2]) and (window[2] >= e[3]):
+  for e in epitopes_inside.itertuples():
+    if (window[0] <= e[2]) and (window[1] >= e[3]):
       return True
   return False
-  
-def condition_2(window, epitopes_in):
+
+def condition_2(window, epitopes_inside):
   '''Check if more than half the window belongs to 1 or more epitopes'''
   overlaps = np.zeros(WIN_SIZE,dtype=int)
-  for e in epitopes_in.itertuples():
-    #print(window,'||',e[1],(window[1] <= e[3]) and (window[2] >= e[2]))#debug
-    if (window[1] <= e[3]) and (window[2] >= e[2]): # this checks if overlap
-      overlap_start = max(window[1],e[2])-window[1]
-      overlap_end = min(window[2],e[3])-window[1]
+  for e in epitopes_inside.itertuples():
+    if (window[0] <= e[3]) and (window[1] >= e[2]): # this checks if overlap
+      overlap_start = max(window[0],e[2])-window[0]
+      overlap_end = min(window[1],e[3])-window[0]
       overlaps[overlap_start: overlap_end+1] = 1     
   return np.sum(overlaps) > int(WIN_SIZE/2 +0.5) 
 
-def contains_epitope(window, epitopes_in):
+def contains_epitope(window, epitopes_inside):
   '''Check if a window of 30aa satisfies the conditions for epitope'''
-  if condition_1(window, epitopes_in): return 1
-  elif condition_2(window, epitopes_in): return 1
+  if condition_1(window, epitopes_inside): return 1
+  elif condition_2(window, epitopes_inside): return 1
   return 0
 
-
+# Association between protein and corresponding epitopes
+current_prot = ''
+assoc_protein_epitopes = {}
+for e in epitopes_df.itertuples():
+  if e[5] != current_prot:
+    current_prot=e[5]
+    assoc_protein_epitopes[current_prot]=[]
+  assoc_protein_epitopes[current_prot].append(e[0])
+    
 if verb: print('   Proteins time (s) time (min)  Rows in training set')
 f = '{:5}/{:5} {:8.1f} {:10.2f}  {}'
 start_t = time.time()
 
 # for all proteins (remove iloc after testing)
 for protein in proteins_df.iloc[0:100].itertuples():
-  if (protein[0]%pr_e == 0): 
-    print(f.format(protein[0],len(proteins_df),time.time()-start_t,
+  if (protein[0]%5 == 0): 
+    print(f.format(protein[0],len(assoc_protein_epitopes),time.time()-start_t,
                    (time.time()-start_t)/60, len(results_df)))
     
   # check epitopes that have that protein as parent_id
-  epitopes_inside = epitopes_df.loc[epitopes_df['protein_id'] == protein[2]]
+  #epitopes_inside = epitopes_df.loc[epitopes_df['protein_id'] == protein[2]] <-slow
+  epitopes_inside = epitopes_df.iloc[assoc_protein_epitopes[protein[2]]] # <- fast?
   if(len(epitopes_inside) <= 0):
     continue # skip protein if it has no epitopes for this haplotype
 
@@ -109,9 +116,10 @@ for protein in proteins_df.iloc[0:100].itertuples():
   list_windows, list_conditions = [],[]
   
   for i in range(n_windows):
-    window = [protein[3][i:i+WIN_SIZE],i+1,i+WIN_SIZE]
+    window = [i+1,i+WIN_SIZE]
     condition = contains_epitope(window, epitopes_inside)
-    list_windows.append(window[0]), list_conditions.append(condition)
+    list_windows.append(protein[3][i:i+WIN_SIZE])
+    list_conditions.append(condition)
   
 # save results  
   w_df=pd.DataFrame(zip(list_windows,list_conditions),columns=results_df.columns)
