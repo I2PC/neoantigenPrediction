@@ -1,2 +1,4 @@
 # ignore swap vim files
 *.swp 
+# ignore big csvs
+*.csv_
