@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import pandas as pd
-import numpy as np
-import time
-import sys
+import pandas as pd, numpy as np
+import time, sys
+from functools import partial, reduce
 verb = True # to print debug info
+debug = False
 
 # 0. Select the haplotype
 
@@ -58,21 +58,39 @@ if verb:
 
 if verb: print('\nSliding window for epitopes in haplotype {} \n'.format(h))
 
-results_df = pd.DataFrame(columns=['30aa_seq','contains_epitope?'])
 output_name = 'trainig_indep_'+h+'.csv'
 pr_e = 20 # print info every n proteins
 WIN_SIZE=30
 
-def condition_1(window,epitopes_inside):
+# keep only the proteins actually used in this haplotype
+proteins_df=proteins_df.loc[proteins_df['protein_id'].isin(pd.unique(epitopes_df['protein_id']))]
+
+def condition_1(window, epitopes_in):
   '''Check if whole epitope inside the window'''
+  e = (window[0]<=epitopes_in['start'])&(window[1]>= epitopes_in['end'])
+  return e.any()
+  #seq version
   for e in epitopes_inside.itertuples():
     if (window[0] <= e[2]) and (window[1] >= e[3]):
       return True
   return False
 
-def condition_2(window, epitopes_inside):
+def condition_2(window, epitopes_in):
   '''Check if more than half the window belongs to 1 or more epitopes'''
   overlaps = np.zeros(WIN_SIZE,dtype=int)
+  overlap_eps = epitopes_in.loc[
+    (window[0]<=epitopes_in['end']) & (window[1]>= epitopes_in['start'])]
+  def fu(x,y):
+    o_s = max(window[0], x)-window[0]
+    o_e = min(w_1, y)-window[0]
+    o = np.zeros(WIN_SIZE,dtype=int)
+    o[o_s: o_e + 1]=1
+    return o
+  ovs = list(map(fu, overlap_eps))
+  a = reduce(np.add,ovs,OV)
+  return len(a[a==0]) < int(WIN_SIZE/2+0.5)
+
+  #seq version
   for e in epitopes_inside.itertuples():
     if (window[0] <= e[3]) and (window[1] >= e[2]): # this checks if overlap
       overlap_start = max(window[0],e[2])-window[0]
@@ -87,39 +105,89 @@ def contains_epitope(window, epitopes_inside):
   return 0
 
 # Association between protein and corresponding epitopes
-current_prot = ''
-assoc_protein_epitopes = {}
-for e in epitopes_df.itertuples():
-  if e[5] != current_prot:
-    current_prot=e[5]
-    assoc_protein_epitopes[current_prot]=[]
-  assoc_protein_epitopes[current_prot].append(e[0])
+#current_prot = ''
+#assoc_protein_epitopes = {}
+#for e in epitopes_df.itertuples():
+#  if e[5] != current_prot:
+#    current_prot=e[5]
+#   assoc_protein_epitopes[current_prot]=[]
+#  assoc_protein_epitopes[current_prot].append(e[0])
     
+def sliding_window(protein_id, aa_seq):
+  #if debug: print(protein_id,aa_seq[0:10])
+  epitopes_in = epitopes_df.loc[epitopes_df['protein_id'] == protein_id]
+  #if debug: print(len(epitopes_in),'epitopes inside')
+  n_windows = len(aa_seq) - (WIN_SIZE - 1)
+  
+  all_windows = np.zeros([n_windows, 2],dtype=int)
+  all_windows[:,0] = np.arange(n_windows)+1
+  all_windows[:,1] = np.arange(n_windows)+WIN_SIZE
+  fun_contains = partial(contains_epitope,epitopes_inside=epitopes_in)
+  
+  #list_conditions = list(map(fun_contains, all_windows))
+  list_conditions = np.vectorize(fun_contains)(all_windows)
+  list_windows =  list(map(lambda x: aa_seq[x[0]-1:x[1]],all_windows))
+  
+  #if debug: print(list(zip(list_windows,list_conditions))[0:10])
+  
+  return pd.DataFrame(zip(list_windows,list_conditions),columns=results_df.columns)
+
+
+if verb: print('   Proteins time (s) time (min)  Rows in training set')
+f_ = '{:8.1f} {:10.2f}'
+
+def test_time(n_prots=20):
+  start_t = time.time()
+  print('Testing with {} proteins ...'.format(n_prots))
+  print('   time (s) time (min)')
+  r=list(map(sliding_window,
+             proteins_df['protein_id'][0:n_prots],
+             proteins_df['aas'][0:n_prots]))
+  print(f_.format(time.time()-start_t,(time.time()-start_t)/60))
+  return r
+
+r = test_time(20)
+
+
+sys.exit()
+
+results_df = pd.DataFrame(columns=['30aa_seq','contains_epitope?'])
+
 if verb: print('   Proteins time (s) time (min)  Rows in training set')
 f = '{:5}/{:5} {:8.1f} {:10.2f}  {}'
+
 start_t = time.time()
 
 # for all proteins (remove iloc after testing)
 for protein in proteins_df.iloc[0:100].itertuples():
   if (protein[0]%5 == 0): 
-    print(f.format(protein[0],len(assoc_protein_epitopes),time.time()-start_t,
+    print(f.format(protein[0],len(proteins_df),time.time()-start_t,
                    (time.time()-start_t)/60, len(results_df)))
     
   # check epitopes that have that protein as parent_id
-  #epitopes_inside = epitopes_df.loc[epitopes_df['protein_id'] == protein[2]] <-slow
-  epitopes_inside = epitopes_df.iloc[assoc_protein_epitopes[protein[2]]] # <- fast?
-  if(len(epitopes_inside) <= 0):
+  epitopes_in = epitopes_df.loc[epitopes_df['protein_id'] == protein[2]]
+  #epitopes_inside = epitopes_df.iloc[assoc_protein_epitopes[protein[2]]] # slower
+  if(len(epitopes_in) <= 0):
     continue # skip protein if it has no epitopes for this haplotype
 
-  # slide through the windows
   n_windows = len(protein[3]) - (WIN_SIZE - 1)
-  list_windows, list_conditions = [],[]
+  all_windows = np.zeros([n_windows, 2],dtype=int)
+  all_windows[:,0] = np.arange(n_windows)+1
+  all_windows[:,1] = np.arange(n_windows)+WIN_SIZE
+  fun_contains = partial(contains_epitope,epitopes_inside=epitopes_in)
+  list_conditions = list(map(fun_contains, all_windows))
+  #list_conditions = np.vectorize(fun_contains)(all_windows)
+  list_windows =  list(map(lambda x: protein[3][x[0]-1:x[1]],all_windows))
   
-  for i in range(n_windows):
-    window = [i+1,i+WIN_SIZE]
-    condition = contains_epitope(window, epitopes_inside)
-    list_windows.append(protein[3][i:i+WIN_SIZE])
-    list_conditions.append(condition)
+  # slide through the windows
+  #n_windows = len(protein[3]) - (WIN_SIZE - 1)
+  #list_windows, list_conditions = [],[]
+  
+  #for i in range(n_windows):
+  #  window = [i+1,i+WIN_SIZE]
+  #  condition = contains_epitope(window, epitopes_inside)
+  #  list_windows.append(protein[3][i:i+WIN_SIZE])
+  #  list_conditions.append(condition)
   
 # save results  
   w_df=pd.DataFrame(zip(list_windows,list_conditions),columns=results_df.columns)
@@ -132,7 +200,6 @@ print(f.format(protein[0],len(proteins_df),time.time()-start_t,
 results_df.to_csv(output_name, header=True, index=False)
 print('Output saved in {}, it has {} rows'.format(output_name,len(results_df)))
 
-sys.exit(0)
 
 
 
