@@ -18,7 +18,6 @@ if verb: print('Generating epitope/non-epitope data for haplotype {}: {}'.
   format(h_index,haplotypes[h_index]),end='\n\n')
 
 # 1. Load the data
-# There is one epitope file per haplotype
 
 # Public repository with all the data: https://gitlab.com/ivan_ea/epitopes
 DATA_URL = 'https://gitlab.com/ivan_ea/epitopes/-/raw/master/'
@@ -76,13 +75,67 @@ if verb:
 print("--- %s seconds ---" % (time.time() - start_time))
 
 
-# 3.
-# TODO sliding window and generation of dataset for training (1 per haplotype)
+# 2. IN PROGRESS 
+# Sliding window and generation of dataset for training (1 per haplotype)
 # Output: 6 .csv files with these header and content:
 #  30aa_seq,contains_epitope?
 #  EJEMPLO_DE_SEQUENCIA_DE_30_AA,0
 #  JEMPLO_DE_SEQUENCIA_DE_30_AAs,1
 #  etc...
+#  13248713 = Max number of rows (windows for our proteins) 
+
+results_df = pd.DataFrame(columns=['30aa_seq','contains_epitope?'])
+output_name = 'trainig_indep_'+h+'.csv'
+pr_e = 20 # print info every 20 proteins
+win_size=30
+print('Proteins {}/{}  time (s)')
+
+start_time = time.time()
+
+def condition_1(window,epitopes_in):
+  '''Check if whole epitope inside the window'''
+  for e in epitopes_in.itertuples():
+    #print(window,'||',e[1],(window[1] <= e[2]) and (window[2] >= e[3]))#debug
+    if (window[1] <= e[2]) and (window[2] >= e[3]):
+      return True
+  return False
+  
+def condition_2(window, epitopes_in):
+  return False  
+
+def contains_epitope(window, epitopes_in):
+  '''Check if a window of 30aa satisfies the conditions for epitope'''
+  if condition_1(window, epitopes_in):
+    return 1
+  elif condition_2(window, epitopes_in):
+    return 1
+  return 0
+
+# for all proteins (remove iloc after testing)
+for protein in proteins_df.iloc[[22000,0,1]].itertuples():
+  print(protein[2]) # debug
+  # check epitopes that have that protein as parent_id
+  epitopes_inside = epitopes_df.loc[epitopes_df['protein_id'] == protein[2]]
+  if(len(epitopes_inside) <= 0):
+    continue # skip protein if it has no epitopes for this haplotype
+  print(len(epitopes_inside))
+  len_chain = len(protein[3])
+  n_windows = len_chain - (win_size - 1)
+  #slide through the windows
+  for i in range(n_windows):
+    window = [protein[3][i:i+win_size],i+1,i+win_size]
+    condition = contains_epitope(window, epitopes_inside)
+    print(window,condition)
+    
+
+
+
+
+#plot in csv (romeve duplicates and contradictory)
+
+
+
+
 
 
 
