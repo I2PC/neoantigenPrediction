@@ -7,6 +7,7 @@ import sys
 verb = True # to print debug info
 
 # 0. Select the haplotype
+
 haplotypes = ['MHC_1_A','MHC_1_B','MHC_1_C','MHC_2_DP','MHC_2_DQ','MHC_2_DR']
 
 h_index = 0 if len(sys.argv) == 1 else int(sys.argv[1]) 
@@ -14,7 +15,7 @@ if h_index > 5 or h_index < 0:
   print('ERROR: The argument must be a number between 0 and 5')
   sys.exit(1)
 
-if verb: print('Generating epitope/non-epitope data for haplotype {}: {}'.
+if verb: print('\nGenerating epitope/non-epitope data for haplotype {}: {}'.
   format(h_index,haplotypes[h_index]),end='\n\n')
 
 # 1. Load the data
@@ -46,51 +47,21 @@ if verb:
   print('\n Beginning of the {} epitopes dataframe:'.format(h))
   print(epitopes_df.head()) 
 
-sys.exit(0)
 
-# 2. Once data is loaded we want to create a new dataframe containing the epitope, the aa chain and the protein id
-# TAKES A LOT OF TIME 3,5 H 
-
-start_time = time.time()
-
-protein_epitope_df = pd.DataFrame()
-
-for index,protein in proteins_df.iterrows():
-  protein_id = protein['protein_id']
-  aa_chain = protein['aas']
-  #Once we get the protein_id we search for that protein in the haplotypes dfs, and create a new dataframe with the 
-  #epitopes found for that protein
-  for h in haplotypes:
-    epitopes = epitopes_dfs[h].loc[epitopes_dfs[h]['protein_id'] == protein_id]
-    for index, epi in epitopes.iterrows():
-      entry = {'protein_id': protein_id, 'SEQ': aa_chain, 'epitope':epi['epitope']}
-      protein_epitope_df = protein_epitope_df.append(entry, ignore_index=True)
-
-protein_epitope_df.to_csv('epitope_sequence.csv')
-
-if verb:
-  print('\n Beginning of the epitopes/protein dataframe:')
-  print(protein_epitope_df.head()) 
-
-print("--- %s seconds ---" % (time.time() - start_time))
-
-
-# 2. IN PROGRESS 
-# Sliding window and generation of dataset for training (1 per haplotype)
-# Output: 6 .csv files with these header and content:
+# 2. Sliding window and generation of dataset for training (1 per haplotype)
+# Output: one csv files with these header and content:
 #  30aa_seq,contains_epitope?
 #  EJEMPLO_DE_SEQUENCIA_DE_30_AA,0
 #  JEMPLO_DE_SEQUENCIA_DE_30_AAs,1
 #  etc...
-#  13248713 = Max number of rows (windows for our proteins) 
+#  13248713 = Max number of rows (max windows for our proteins) 
+
+if verb: print('\nSliding window for epitopes in haplotype {} \n'.format(h))
 
 results_df = pd.DataFrame(columns=['30aa_seq','contains_epitope?'])
 output_name = 'trainig_indep_'+h+'.csv'
-pr_e = 20 # print info every 20 proteins
-win_size=30
-print('Proteins {}/{}  time (s)')
-
-start_time = time.time()
+pr_e = 20 # print info every n proteins
+WIN_SIZE=30
 
 def condition_1(window,epitopes_in):
   '''Check if whole epitope inside the window'''
@@ -101,41 +72,59 @@ def condition_1(window,epitopes_in):
   return False
   
 def condition_2(window, epitopes_in):
-  return False  
+  '''Check if more than half the window belongs to 1 or more epitopes'''
+  overlaps = np.zeros(WIN_SIZE,dtype=int)
+  for e in epitopes_in.itertuples():
+    #print(window,'||',e[1],(window[1] <= e[3]) and (window[2] >= e[2]))#debug
+    if (window[1] <= e[3]) and (window[2] >= e[2]): # this checks if overlap
+      overlap_start = max(window[1],e[2])-window[1]
+      overlap_end = min(window[2],e[3])-window[1]
+      overlaps[overlap_start: overlap_end+1] = 1     
+  return np.sum(overlaps) > int(WIN_SIZE/2 +0.5) 
 
 def contains_epitope(window, epitopes_in):
   '''Check if a window of 30aa satisfies the conditions for epitope'''
-  if condition_1(window, epitopes_in):
-    return 1
-  elif condition_2(window, epitopes_in):
-    return 1
+  if condition_1(window, epitopes_in): return 1
+  elif condition_2(window, epitopes_in): return 1
   return 0
 
+
+if verb: print('   Proteins time (s) time (min)  Rows in training set')
+f = '{:5}/{:5} {:8.1f} {:10.2f}  {}'
+start_t = time.time()
+
 # for all proteins (remove iloc after testing)
-for protein in proteins_df.iloc[[22000,0,1]].itertuples():
-  print(protein[2]) # debug
+for protein in proteins_df.iloc[0:100].itertuples():
+  if (protein[0]%pr_e == 0): 
+    print(f.format(protein[0],len(proteins_df),time.time()-start_t,
+                   (time.time()-start_t)/60, len(results_df)))
+    
   # check epitopes that have that protein as parent_id
   epitopes_inside = epitopes_df.loc[epitopes_df['protein_id'] == protein[2]]
   if(len(epitopes_inside) <= 0):
     continue # skip protein if it has no epitopes for this haplotype
-  print(len(epitopes_inside))
-  len_chain = len(protein[3])
-  n_windows = len_chain - (win_size - 1)
-  #slide through the windows
+
+  # slide through the windows
+  n_windows = len(protein[3]) - (WIN_SIZE - 1)
+  list_windows, list_conditions = [],[]
+  
   for i in range(n_windows):
-    window = [protein[3][i:i+win_size],i+1,i+win_size]
+    window = [protein[3][i:i+WIN_SIZE],i+1,i+WIN_SIZE]
     condition = contains_epitope(window, epitopes_inside)
-    print(window,condition)
-    
+    list_windows.append(window[0]), list_conditions.append(condition)
+  
+# save results  
+  w_df=pd.DataFrame(zip(list_windows,list_conditions),columns=results_df.columns)
+  results_df = pd.concat([results_df, w_df], ignore_index=True)
 
+print(f.format(protein[0],len(proteins_df),time.time()-start_t,
+(time.time()-start_t)/60, len(results_df)))
 
+# write in csv (romeve duplicates and contradictory later?)
+results_df.to_csv(output_name, header=True, index=False)
+print('Output saved in {}, it has {} rows'.format(output_name,len(results_df)))
 
-
-#plot in csv (romeve duplicates and contradictory)
-
-
-
-
+sys.exit(0)
 
 
 
