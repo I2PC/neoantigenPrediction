@@ -141,6 +141,19 @@ def test_time(n_prots=20):
 
 r = test_time(20)
 
+#Multiprocessing (does not work)
+# def sliding_window_par(p):
+#    return sliding_window(p[0], p[1])
+# if __name__ == '__main__':
+#   n_prots=20
+#   start_t = time.time()
+#   print('Testing with {} proteins ...'.format(n_prots))
+#   print('   time (s) time (min)')
+#   with mp.Pool(8) as P:
+#     r=P.map(sliding_window_par,zip(proteins_df['protein_id'][0:n_prots],
+#              proteins_df['aas'][0:n_prots]))
+#   print('{:8.1f} {:10.2f}'.format(time.time()-start_t,(time.time()-start_t)/60))
+
 
 #sys.exit()
 results_df = pd.DataFrame(columns=output_cols)

@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pandas as pd, numpy as np
-import time, sys, multiprocessing as mp
+import time, sys #, multiprocessing as mp
 from functools import partial, reduce
-verb = True # to print debug info
+verb = True # verbose output
 debug = False
 
 # 0. Select the haplotype
-
 haplotypes = ['MHC_1_A','MHC_1_B','MHC_1_C','MHC_2_DP','MHC_2_DQ','MHC_2_DR']
 
 h_index = 0 if len(sys.argv) == 1 else int(sys.argv[1]) 
@@ -62,16 +61,15 @@ WIN_SIZE = 30
 output_cols = ['30aa_seq','contains_epitope?']
 
 # keep only the proteins actually used in this haplotype
-proteins_df=proteins_df.loc[proteins_df['protein_id'].isin(pd.unique(epitopes_df['protein_id']))]
+proteins_df=proteins_df.loc[proteins_df['protein_id'].isin(
+  pd.unique(epitopes_df['protein_id']))].copy().reset_index(drop=True)
+len_aa =list(map(lambda x:len(x), proteins_df['aas']))
+total_windows = np.sum(len_aa)-29*len(proteins_df)
 
+# auxiliary functions 
 def condition_1(window, epitopes_in):
   '''Check if whole epitope inside the window'''
   return ((window[0]<=epitopes_in['start'])&(window[1]>=epitopes_in['end'])).any()
-  #seq version
-  for e in epitopes_in.itertuples():
-    if (window[0] <= e[2]) and (window[1] >= e[3]):
-      return True
-  return False
 
 def condition_2(window, epitopes_in):
   '''Check if more than half the window belongs to 1 or more epitopes'''
@@ -84,16 +82,9 @@ def condition_2(window, epitopes_in):
     o = np.zeros(WIN_SIZE, dtype=int)
     o[o_s: o_e + 1]=1
     return o
-  ovs = list(map(fu, overlap_eps['start'], overlap_eps['end']))
-  a = reduce(np.add, ovs, overlap_positions)
+  all_overlaps = list(map(fu, overlap_eps['start'], overlap_eps['end']))
+  a = reduce(np.add, all_overlaps, overlap_positions)
   return len(a[a==0]) < int(WIN_SIZE/2+0.5)
-  #seq version
-  for e in epitopes_in.itertuples():
-    if (window[0] <= e[3]) and (window[1] >= e[2]): # this checks if overlap
-      overlap_start = max(window[0],e[2])-window[0]
-      overlap_end = min(window[1],e[3])-window[0]
-      overlap_positions[overlap_start: overlap_end+1] = 1     
-  return np.sum(overlap_positions) > int(WIN_SIZE/2 +0.5) 
 
 def contains_epitope(window, epitopes_inside):
   '''Check if a window of 30aa satisfies the conditions for epitope'''
@@ -101,74 +92,27 @@ def contains_epitope(window, epitopes_inside):
   elif condition_2(window, epitopes_inside): return 1
   return 0
 
-    
-def sliding_window(protein_id, aa_seq):
-  #if debug: print(protein_id,aa_seq[0:10])
-  epitopes_in = epitopes_df.loc[epitopes_df['protein_id'] == protein_id]
-  #if debug: print(len(epitopes_in),'epitopes inside')
-  n_windows = len(aa_seq) - (WIN_SIZE - 1)
-  
-  all_windows = np.zeros([n_windows, 2],dtype=int)
-  all_windows[:,0] = np.arange(n_windows)+1
-  all_windows[:,1] = np.arange(n_windows)+WIN_SIZE
-  fun_contains = partial(contains_epitope,epitopes_inside=epitopes_in)
-  
-  list_conditions = list(map(fun_contains, all_windows))
-  #list_conditions = np.vectorize(fun_contains)(all_windows) #error
-  list_windows =  list(map(lambda x: aa_seq[x[0]-1:x[1]],all_windows))
-  
-  #if debug: print(list(zip(list_windows,list_conditions))[0:10])
-  
-  return pd.DataFrame(zip(list_windows,list_conditions),columns=output_cols)
 
-def sliding_window_par(p):
-    return sliding_window(p[0], p[1])
-
-def test_time(n_prots=20):
-  start_t = time.time()
-  print('Testing with {} proteins ...'.format(n_prots))
-  print('   time (s) time (min)')
-  r=list(map(sliding_window,
-             proteins_df['protein_id'][0:n_prots],
-             proteins_df['aas'][0:n_prots]))
-  print('{:8.1f} {:10.2f}'.format(time.time()-start_t,(time.time()-start_t)/60))
-  return r
-
-r = test_time(20)
-
-# testing multiprocessing (does not work)
-# if __name__ == '__main__':
-#   n_prots=20
-#   start_t = time.time()
-#   print('Testing with {} proteins ...'.format(n_prots))
-#   print('   time (s) time (min)')
-#   with mp.Pool(8) as P:
-#     r=P.map(sliding_window_par,zip(proteins_df['protein_id'][0:n_prots],
-#              proteins_df['aas'][0:n_prots]))
-#   print('{:8.1f} {:10.2f}'.format(time.time()-start_t,(time.time()-start_t)/60))
-
-
-#n_prots=200
+n_prots=20
 results_df = pd.DataFrame(columns=output_cols)
-pr_e = 100 # print info every n proteins
-
+pr_e = 10 # print info every n proteins
 
 if verb: print('   Proteins time (s) time (min)  Rows in training set')
-f = '{:5}/{:5} {:8.1f} {:10.2f}  {}'
+f = '{:5}/{:5} {:7.1f} {:9.2f}      {:8} / {:8}'
 
 start_t = time.time()
 
-# for all proteins (remove iloc after testing)
-for protein in proteins_df.itertuples():
+# SLIDING WINDOW FOR ALL PROTEINS
+for protein in proteins_df.iloc[0:n_prots].itertuples():
+#for protein in proteins_df.itertuples():
   if (protein[0]%pr_e == 0): 
     print(f.format(protein[0],len(proteins_df),time.time()-start_t,
-                   (time.time()-start_t)/60, len(results_df)))
+                   (time.time()-start_t)/60, len(results_df), total_windows))
     
   # check epitopes that have that protein as parent_id
   epitopes_in = epitopes_df.loc[epitopes_df['protein_id'] == protein[2]]
   if(len(epitopes_in) <= 0):
     continue # skip protein if it has no epitopes for this haplotype
-
 
   # slide through the windows (paralell version)
   n_windows = len(protein[3]) - (WIN_SIZE - 1)
@@ -184,7 +128,7 @@ for protein in proteins_df.itertuples():
   results_df = pd.concat([results_df, w_df], ignore_index=True)
 
 print(f.format(protein[0],len(proteins_df),time.time()-start_t,
-(time.time()-start_t)/60, len(results_df)))
+(time.time()-start_t)/60, len(results_df),total_windows))
 
 # write in csv (romeve duplicates and contradictory later?)
 output_name = 'trainig_indep_'+h+'.csv'

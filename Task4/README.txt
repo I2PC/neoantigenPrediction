@@ -9,9 +9,10 @@
 - Haplotype specified by argument (from 0 to 5)
 - Discards epitopes without start and end information (only 250 out of 600k)
 - Implements sliding window from scratch 
+  + Time looks about 120 minutes for haplotype 1 (not completed yet)
 
 # indep_haplotypes_seq.py
 - Sequential version of indep_haplotypes (for backup/code organization)
 - The paralell parts are commented out
-- Gives the same results for the windows as the paralell version
+- Gives the same results for the sliding windows as the paralell version
 - It is slower than the paralell version
