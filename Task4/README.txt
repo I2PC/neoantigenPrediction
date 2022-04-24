@@ -9,10 +9,11 @@
 - Haplotype specified by argument (from 0 to 5)
 - Discards epitopes without start and end information (only 250 out of 600k)
 - Implements sliding window from scratch 
-- Results in forder 'training_indep_haplotypes/'
+- Results in folder 'training_indep_haplotypes/'
   
-Haplotype    Proteins time (s) time (min)  Rows in training set
-MHC_1_A   17037/17037  7936.4     132.28    10521323 / 10521323
+Haplotype    Proteins time (s) time (min)  Rows in training set  Epitopes
+MHC_1_A   17037/17037  7936.4     132.28    10521323 / 10521323  16.47 %
+MHC_1_B   19235/19235  8635.2     143.92    11478532 / 11478532  21.43 %
 
 # indep_haplotypes_seq.py
 - Sequential version of indep_haplotypes (for backup/code organization)

@@ -207,7 +207,7 @@ print(f.format(protein[0],len(proteins_df),time.time()-start_t,
 (time.time()-start_t)/60, len(results_df)))
 
 # write in csv (romeve duplicates and contradictory later?)
-output_name = 'trainig_indep_'+h+'.csv'
+output_name = 'training_indep_'+h+'.csv'
 results_df.to_csv(output_name, header=True, index=False)
 print('Output saved in {}, it has {} rows'.format(output_name,len(results_df)))
 

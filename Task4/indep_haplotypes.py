@@ -99,13 +99,13 @@ results_df = pd.DataFrame(columns=output_cols)
 pr_e = 200 # print info every n proteins
 
 print('   Proteins time (s) time (min)  Rows in training set')
-f = '{:5}/{:5} {:7.1f} {:9.2f}     {:8} / {:8}'
+f = '{:5}/{:5} {:7.1f}  {:9.2f}    {:8} / {:8}'
 
 start_t = time.time()
 
 # SLIDING WINDOW FOR ALL PROTEINS
-#for protein in proteins_df.iloc[:n_prots].itertuples():
-for protein in proteins_df.itertuples():
+for protein in proteins_df.iloc[:n_prots].itertuples():
+#for protein in proteins_df.itertuples():
   if (protein[0] % pr_e == 0): 
     print(f.format(protein[0],len(proteins_df),time.time()-start_t,
                    (time.time()-start_t)/60, len(results_df), total_windows))
@@ -127,12 +127,13 @@ for protein in proteins_df.itertuples():
   w_df=pd.DataFrame(zip(list_windows,list_conditions),columns=results_df.columns)
   results_df = pd.concat([results_df, w_df], ignore_index=True)
 
-print('Haplotype    Proteins time (s) time (min)  Rows in training set')
-print(('{:9} '+f).format(h,protein[0]+1,len(proteins_df),time.time()-start_t,
-(time.time()-start_t)/60, len(results_df),total_windows))
+print('Haplotype    Proteins time (s) time (min)  Rows in training set  Epitopes')
+print(('{:9} '+f+'  {:.2f} %').format(h,protein[0]+1,len(proteins_df),time.time()-start_t,
+(time.time()-start_t)/60, len(results_df),total_windows,
+100*len(results_df.loc[results_df['contains_epitope?']==1])/total_windows))
 
 # write in csv (romeve duplicates and contradictory later?)
-output_name = 'trainig_indep_'+h+'.csv'
+output_name = 'training_indep_'+h+'.csv'
 results_df.to_csv(output_name, header=True, index=False)
 print('Output saved in {}, it has {} rows'.format(output_name,len(results_df)))
 
