@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pandas as pd, numpy as np
-import time, sys #, multiprocessing as mp
+import time, sys 
 from functools import partial, reduce
 verb = True # verbose output
-debug = False
 
 # 0. Select the haplotype
 haplotypes = ['MHC_1_A','MHC_1_B','MHC_1_C','MHC_2_DP','MHC_2_DQ','MHC_2_DR']
@@ -53,7 +52,7 @@ if verb:
 #  EJEMPLO_DE_SEQUENCIA_DE_30_AA,0
 #  JEMPLO_DE_SEQUENCIA_DE_30_AAs,1
 #  etc...
-#  13248713 = Max number of rows (max windows for our proteins) 
+#  13248713 = Max number of rows (max sliding windows for our proteins) 
 
 if verb: print('\nSliding window for epitopes in haplotype {} \n'.format(h))
 
@@ -63,8 +62,10 @@ output_cols = ['30aa_seq','contains_epitope?']
 # keep only the proteins actually used in this haplotype
 proteins_df=proteins_df.loc[proteins_df['protein_id'].isin(
   pd.unique(epitopes_df['protein_id']))].copy().reset_index(drop=True)
-len_aa =list(map(lambda x:len(x), proteins_df['aas']))
-total_windows = np.sum(len_aa)-29*len(proteins_df)
+#keep only proteins with more aminoacids than window size
+proteins_df['len'] = list(map(lambda x:len(x), proteins_df['aas']))
+proteins_df=proteins_df.loc[proteins_df['len']>WIN_SIZE].copy().reset_index(drop=True)
+total_windows = np.sum(proteins_df['len']) - (WIN_SIZE-1)*len(proteins_df)
 
 # auxiliary functions 
 def condition_1(window, epitopes_in):
@@ -95,24 +96,23 @@ def contains_epitope(window, epitopes_inside):
 
 n_prots=20
 results_df = pd.DataFrame(columns=output_cols)
-pr_e = 10 # print info every n proteins
+pr_e = 200 # print info every n proteins
 
-if verb: print('   Proteins time (s) time (min)  Rows in training set')
-f = '{:5}/{:5} {:7.1f} {:9.2f}      {:8} / {:8}'
+print('   Proteins time (s) time (min)  Rows in training set')
+f = '{:5}/{:5} {:7.1f} {:9.2f}     {:8} / {:8}'
 
 start_t = time.time()
 
 # SLIDING WINDOW FOR ALL PROTEINS
-for protein in proteins_df.iloc[0:n_prots].itertuples():
-#for protein in proteins_df.itertuples():
-  if (protein[0]%pr_e == 0): 
+#for protein in proteins_df.iloc[:n_prots].itertuples():
+for protein in proteins_df.itertuples():
+  if (protein[0] % pr_e == 0): 
     print(f.format(protein[0],len(proteins_df),time.time()-start_t,
                    (time.time()-start_t)/60, len(results_df), total_windows))
     
   # check epitopes that have that protein as parent_id
   epitopes_in = epitopes_df.loc[epitopes_df['protein_id'] == protein[2]]
-  if(len(epitopes_in) <= 0):
-    continue # skip protein if it has no epitopes for this haplotype
+  if(len(epitopes_in) <= 0): continue # skip protein if it has no epitopes for this haplotype
 
   # slide through the windows (paralell version)
   n_windows = len(protein[3]) - (WIN_SIZE - 1)
@@ -127,7 +127,8 @@ for protein in proteins_df.iloc[0:n_prots].itertuples():
   w_df=pd.DataFrame(zip(list_windows,list_conditions),columns=results_df.columns)
   results_df = pd.concat([results_df, w_df], ignore_index=True)
 
-print(f.format(protein[0],len(proteins_df),time.time()-start_t,
+print('Haplotype    Proteins time (s) time (min)  Rows in training set')
+print(('{:9} '+f).format(h,protein[0]+1,len(proteins_df),time.time()-start_t,
 (time.time()-start_t)/60, len(results_df),total_windows))
 
 # write in csv (romeve duplicates and contradictory later?)
