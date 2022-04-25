@@ -14,6 +14,9 @@
 Haplotype    Proteins time (s) time (min)  Rows in training set  Epitopes
 MHC_1_A   17037/17037  7936.4     132.28    10521323 / 10521323  16.47 %
 MHC_1_B   19235/19235  8635.2     143.92    11478532 / 11478532  21.43 %
+MHC_1_C   11428/11428  5102.4      85.04     7365457 /  7365457  11.58 %
+MHC_2_DP   6340/ 6340  2679.1      44.65     4026748 /  4026748   7.63 %
+MHC_2_DQ   3257/ 3257  1262.4      21.04     1997461 /  1997461   7.48 %
 
 # indep_haplotypes_seq.py
 - Sequential version of indep_haplotypes (for backup/code organization)
