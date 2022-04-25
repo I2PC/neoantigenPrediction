@@ -17,9 +17,16 @@ MHC_1_B   19235/19235  8635.2     143.92    11478532 / 11478532  21.43 %
 MHC_1_C   11428/11428  5102.4      85.04     7365457 /  7365457  11.58 %
 MHC_2_DP   6340/ 6340  2679.1      44.65     4026748 /  4026748   7.63 %
 MHC_2_DQ   3257/ 3257  1262.4      21.04     1997461 /  1997461   7.48 %
+MHC_2_DR   9916/ 9916  4266.6      71.11     6130607 /  6130607  10.24 %
+
+- possible improvement: paralellize condition computation for all windows of a
+  given protein 
+  (i.e. line 122) list_conditions = list(map(fun_contains,all_windows))
 
 # indep_haplotypes_seq.py
 - Sequential version of indep_haplotypes (for backup/code organization)
 - The paralell parts are commented out
 - Gives the same results for the sliding windows as the paralell version
 - It is slower than the paralell version
+
+# TODO: remove duplicates and contradictory windows from training set 

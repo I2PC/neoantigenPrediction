@@ -3,7 +3,7 @@
 import pandas as pd, numpy as np
 import time, sys 
 from functools import partial, reduce
-verb = True # verbose output
+verb = True # verbose output for sections 0. and 1.
 
 # 0. Select the haplotype
 haplotypes = ['MHC_1_A','MHC_1_B','MHC_1_C','MHC_2_DP','MHC_2_DQ','MHC_2_DR']
@@ -54,7 +54,7 @@ if verb:
 #  etc...
 #  13248713 = Max number of rows (max sliding windows for our proteins) 
 
-if verb: print('\nSliding window for epitopes in haplotype {} \n'.format(h))
+print('\nSliding window for epitopes in haplotype {} \n'.format(h))
 
 WIN_SIZE = 30
 output_cols = ['30aa_seq','contains_epitope?']
@@ -93,10 +93,9 @@ def contains_epitope(window, epitopes_inside):
   elif condition_2(window, epitopes_inside): return 1
   return 0
 
-
 n_prots=20
 results_df = pd.DataFrame(columns=output_cols)
-pr_e = 200 # print info every n proteins
+pr_e = 10 # print info every n proteins
 
 print('   Proteins time (s) time (min)  Rows in training set')
 f = '{:5}/{:5} {:7.1f}  {:9.2f}    {:8} / {:8}'
@@ -132,11 +131,8 @@ print(('{:9} '+f+'  {:.2f} %').format(h,protein[0]+1,len(proteins_df),time.time(
 (time.time()-start_t)/60, len(results_df),total_windows,
 100*len(results_df.loc[results_df['contains_epitope?']==1])/total_windows))
 
-# write in csv (romeve duplicates and contradictory later?)
+# write in csv 
 output_name = 'training_indep_'+h+'.csv'
 results_df.to_csv(output_name, header=True, index=False)
 print('Output saved in {}, it has {} rows'.format(output_name,len(results_df)))
-
-
-
 
