@@ -10,7 +10,7 @@ import os
 import numpy as np
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import load_model
-import pandas as pd
+#import pandas as pd
 
 # PROTEIN UNET
 models_folder = "./data/models_good" #folder with the models
@@ -93,10 +93,10 @@ def main():
         save_predictions(resnames, pred_c)
 
 # OPEN FILES
-file_in= pd.read_csv('proteins_out.txt')
-file_seq= file_in['seq']
-file_seq.to_csv('proteins_seq.txt', index=False)
-file = open('proteins_seq.txt', 'r') #name of the text file with the protein sequence
+#file_in= pd.read_csv('proteins_out.txt')
+#file_seq= file_in['seq']
+#file_seq.to_csv('proteins_seq.txt', index=False)
+file = open('proteins_seq.csv', 'r') #name of the text file with the protein sequence
 file2 = open('prediction.txt', 'w') #name of the text file for secondary structure
 
 data = file.read().splitlines()
@@ -111,21 +111,22 @@ data = file.read().splitlines()
 
 
 count = 0
-#for i in range(len(data)):
-    #if len(data[i]) <= 1024:
-        #input = [count, data[i]]
-        #if __name__ == '__main__':
-            #main()
-       # elif len(data[i]) > 1024:
-           # sequences = divide_sequence(data[i])
-           # for i in range(len(sequences)):
-               # input = [count, sequences[i]]
-        # count += 1
 for i in range(len(data)):
-    input=[count, data[i]]
-    if __name__=='__main__':
-        main()
-    count +=1
+    if len(data[i]) <= 1024:
+        input = [count, data[i]]
+        if __name__ == '__main__':
+            main()
+    elif len(data[i]) > 1024:
+        sequences = divide_sequence(data[i])
+        for i in range(len(sequences)):
+            input = [count, sequences[i]]
+            main()
+            count += 1
+#for i in range(len(data)):
+    #input=[count, data[i]]
+    #if __name__=='__main__':
+        #main()
+    #count +=1
 
 file.close()
 file2.close()
