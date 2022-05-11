@@ -96,10 +96,10 @@ def main():
 #file_in= pd.read_csv('proteins_out.txt')
 #file_seq= file_in['seq']
 #file_seq.to_csv('proteins_seq.txt', index=False)
-file = open('proteins_seq.csv', 'r') #name of the text file with the protein sequence
+file = open('proteome1024.txt', 'r') #name of the text file with the protein sequence
 file2 = open('prediction.txt', 'w') #name of the text file for secondary structure
 
-data = file.read().splitlines()
+data = file.read()
 #sequence = ''
 
 #obtain the whole protein sequence
@@ -111,6 +111,7 @@ data = file.read().splitlines()
 
 
 count = 0
+'''
 for i in range(len(data)):
     if len(data[i]) <= 1024:
         input = [count, data[i]]
@@ -122,11 +123,12 @@ for i in range(len(data)):
             input = [count, sequences[i]]
             main()
             count += 1
-#for i in range(len(data)):
-    #input=[count, data[i]]
-    #if __name__=='__main__':
-        #main()
-    #count +=1
+'''
+for i in range(0,len(data),1024):
+    input=[count, data[i]]
+    if __name__=='__main__':
+        main()
+    count +=1
 
 file.close()
 file2.close()
