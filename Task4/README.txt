@@ -29,4 +29,5 @@ MHC_2_DR   9916/ 9916  4266.6      71.11     6130607 /  6130607  10.24 %
 - Gives the same results for the sliding windows as the paralell version
 - It is slower than the paralell version
 
-# TODO: remove duplicates and contradictory windows from training set 
+# remove_repeated.py
+- Remove duplicates and contradictory windows (same 30_aas chains labeled 0 and 1) from training set 
