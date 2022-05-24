@@ -31,3 +31,12 @@ MHC_2_DR   9916/ 9916  4266.6      71.11     6130607 /  6130607  10.24 %
 
 # remove_repeated.py
 - Remove duplicates and contradictory windows (same 30_aas chains labeled 0 and 1) from training set 
+
+# Final epitope counts
+   8667465 MHC_1_A.csv
+   8882127 MHC_1_B.csv
+   6727170 MHC_1_C.csv
+   3958497 MHC_2_DP.csv
+   1878652 MHC_2_DQ.csv
+   5589346 MHC_2_DR.csv
+  35703257 total
