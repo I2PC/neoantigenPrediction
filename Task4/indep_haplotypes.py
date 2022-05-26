@@ -48,23 +48,23 @@ if verb:
 
 # 2. Sliding window and generation of dataset for training (1 per haplotype)
 # Output: one csv files with these header and content:
-#  30aa_seq,contains_epitope?
-#  EJEMPLO_DE_SEQUENCIA_DE_30_AA,0
-#  JEMPLO_DE_SEQUENCIA_DE_30_AAs,1
+#  30aa_seq,contains_epitope?,protein_id,window_id
+#  EJEMPLO_DE_SEQUENCIA_DE_30_AA,0,protein_ID,1
+#  JEMPLO_DE_SEQUENCIA_DE_30_AAs,1,protein_ID,2
 #  etc...
 #  13248713 = Max number of rows (max sliding windows for our proteins) 
 
 print('\nSliding window for epitopes in haplotype {} \n'.format(h))
 
 WIN_SIZE = 30
-output_cols = ['30aa_seq','contains_epitope?']
+output_cols = ['30aa_window','contains_epitope?','protein_id','window_id']
 
 # keep only the proteins actually used in this haplotype
 proteins_df=proteins_df.loc[proteins_df['protein_id'].isin(
   pd.unique(epitopes_df['protein_id']))].copy().reset_index(drop=True)
 #keep only proteins with more aminoacids than window size
-proteins_df['len'] = list(map(lambda x:len(x), proteins_df['aas']))
-proteins_df=proteins_df.loc[proteins_df['len']>WIN_SIZE].copy().reset_index(drop=True)
+proteins_df['len'] = list(map(lambda x: len(x), proteins_df['aas']))
+proteins_df = proteins_df.loc[proteins_df['len']>WIN_SIZE].copy().reset_index(drop=True)
 total_windows = np.sum(proteins_df['len']) - (WIN_SIZE-1)*len(proteins_df)
 
 # auxiliary functions 
@@ -83,7 +83,7 @@ def condition_2(window, epitopes_in):
     o = np.zeros(WIN_SIZE, dtype=int)
     o[o_s: o_e + 1]=1
     return o
-  all_overlaps = list(map(fu, overlap_eps['start'], overlap_eps['end']))
+  all_overlaps = map(fu, overlap_eps['start'], overlap_eps['end'])
   a = reduce(np.add, all_overlaps, overlap_positions)
   return len(a[a==0]) < int(WIN_SIZE/2+0.5)
 
@@ -94,8 +94,8 @@ def contains_epitope(window, epitopes_inside):
   return 0
 
 n_prots=20
-results_df = pd.DataFrame(columns=output_cols)
-pr_e = 10 # print info every n proteins
+results_df = pd.DataFrame(columns=output_cols, dtype=object)
+pr_e = 3 # print info every n proteins
 
 print('   Proteins time (s) time (min)  Rows in training set')
 f = '{:5}/{:5} {:7.1f}  {:9.2f}    {:8} / {:8}'
@@ -111,28 +111,30 @@ for protein in proteins_df.iloc[:n_prots].itertuples():
     
   # check epitopes that have that protein as parent_id
   epitopes_in = epitopes_df.loc[epitopes_df['protein_id'] == protein[2]]
-  if(len(epitopes_in) <= 0): continue # skip protein if it has no epitopes for this haplotype
+  # skip protein if it has no epitopes for this haplotype
+  if(len(epitopes_in) <= 0): continue 
 
   # slide through the windows (paralell version)
   n_windows = len(protein[3]) - (WIN_SIZE - 1)
   all_windows = np.zeros([n_windows, 2],dtype=int)
   all_windows[:,0] = np.arange(n_windows)+1
   all_windows[:,1] = np.arange(n_windows)+WIN_SIZE
-  fun_contains = partial(contains_epitope,epitopes_inside=epitopes_in)
+  fun_contains = partial(contains_epitope, epitopes_inside=epitopes_in)
   list_conditions = list(map(fun_contains, all_windows))
-  list_windows =  list(map(lambda x: protein[3][x[0]-1:x[1]],all_windows))
+  list_windows =  list(map(lambda x: protein[3][x[0]-1:x[1]], all_windows))
     
 # save results  
-  w_df=pd.DataFrame(zip(list_windows,list_conditions),columns=results_df.columns)
+  w_df = pd.DataFrame(zip(list_windows,list_conditions, [protein[2]]*n_windows,
+                          all_windows[:,0]), columns=results_df.columns)
   results_df = pd.concat([results_df, w_df], ignore_index=True)
 
 print('Haplotype    Proteins time (s) time (min)  Rows in training set  Epitopes')
-print(('{:9} '+f+'  {:.2f} %').format(h,protein[0]+1,len(proteins_df),time.time()-start_t,
-(time.time()-start_t)/60, len(results_df),total_windows,
-100*len(results_df.loc[results_df['contains_epitope?']==1])/total_windows))
+print(('{:9} '+f+'  {:.2f} %').format(h,protein[0]+1,len(proteins_df),
+time.time()-start_t,(time.time()-start_t)/60, len(results_df),total_windows,
+100*len(results_df.loc[results_df['contains_epitope?']==1])/len(results_df)))
 
 # write in csv 
-output_name = 'training_indep_'+h+'.csv'
+output_name = 'dataset_indep_'+h+'.csv'
 results_df.to_csv(output_name, header=True, index=False)
 print('Output saved in {}, it has {} rows'.format(output_name,len(results_df)))
 

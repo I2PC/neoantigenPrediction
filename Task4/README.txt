@@ -10,6 +10,7 @@
 - Discards epitopes without start and end information (only 250 out of 600k)
 - Implements sliding window from scratch 
 - Results in folder 'training_indep_haplotypes/'
+- header: 30aa_window, contains_epitope?, protein_id, window_id
   
 Haplotype    Proteins time (s) time (min)  Rows in training set  Epitopes
 MHC_1_A   17037/17037  7936.4     132.28    10521323 / 10521323  16.47 %
@@ -28,6 +29,7 @@ MHC_2_DR   9916/ 9916  4266.6      71.11     6130607 /  6130607  10.24 %
 - The paralell parts are commented out
 - Gives the same results for the sliding windows as the paralell version
 - It is slower than the paralell version
+- Only retunrs 30aa_window,and label (no parent protein nor window id)
 
 # remove_repeated.py
 - Remove duplicates and contradictory windows (same 30_aas chains labeled 0 and 1) from training set 
