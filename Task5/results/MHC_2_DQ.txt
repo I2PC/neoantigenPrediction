@@ -1,0 +1,33 @@
+Refined training for haplotype MHC_2_DQ
+      Training instances   800 (80%), 
+      Validation instances 100 (10%),
+      Test instances       100 (10%)
+Optimizer: Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.0005
+    maximize: False
+    weight_decay: 0
+)
+Nonlinearity: ReLU()
+Device: cuda
+Epoch  Train_loss  Valid_loss  Train_acc  Valid_acc  time(s)  min
+    0      0.4528      0.4667     0.8550     0.8500      0.1  0.0
+    1      0.4589      0.4743     0.8700     0.8400      0.2  0.0
+    2      0.4403      0.4735     0.8800     0.8300      0.1  0.0
+    4      0.4242      0.4692     0.8950     0.8400      0.1  0.0
+    6      0.4158      0.4643     0.8988     0.8400      0.1  0.0
+    8      0.4133      0.4567     0.9000     0.8600      0.1  0.0
+   10      0.4093      0.4685     0.9050     0.8400      0.1  0.0
+   12      0.4034      0.4664     0.9113     0.8500      0.1  0.0
+   14      0.3996      0.4718     0.9137     0.8300      0.1  0.0
+   16      0.3983      0.4713     0.9150     0.8300      0.1  0.0
+   18      0.3983      0.4741     0.9150     0.8300      0.1  0.0
+   20      0.3983      0.4741     0.9163     0.8400      0.1  0.0
+Trained 20 epochs (total 20)
+Total time:  1.8 s  ( 0.0 min)
+
+Accuracy in test: 0.790
+Model saved in: models/MHC_2_DQ_epochs20.pth

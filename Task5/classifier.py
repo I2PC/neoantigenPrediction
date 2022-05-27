@@ -13,13 +13,16 @@ BATCH_SIZE=100
 # -1: pre-train with all haplotypes
 # 0 - 5: refined train with selected haplotype (keep training)
 hp_types = ['MHC_1_A','MHC_1_B','MHC_1_C','MHC_2_DP','MHC_2_DQ','MHC_2_DR']
-MODE = -1
+
+MODE = 4 # <- choose changing this
+
 ALL = not (MODE >= 0 and MODE <=5)
 if ALL: 
-  print('Pre-training with all haplotypes')
+  title = 'Pre-training with all haplotypes'
 else: 
   hp_types = [hp_types[MODE]]
-  print('Refined training for haplotype',hp_types)
+  title = 'Refined training for haplotype '+hp_types[0]
+print(title)
 
 
 # load data (features and labels)
@@ -28,9 +31,13 @@ Y = []
 for h in hp_types:
  X.append(np.load('synthetic_data/'+h+'_features.npy'))
  Y.append(np.load('synthetic_data/'+h+'_labels.npy'))
+
+X = np.array(X,dtype=np.float32).reshape(-1,N_FEATURES*2)
+Y = np.array(Y,dtype=np.int64).reshape(-1)
+p = np.random.permutation(len(X)) #shuffle data from different haplotypes
  
-tensor_x = torch.as_tensor(np.array(X,dtype=np.float32).reshape(-1,N_FEATURES*2)) # transform to torch tensor
-tensor_y = torch.as_tensor(np.array(Y,dtype=np.int64).reshape(-1))
+tensor_x = torch.as_tensor(X[p]) # transform to torch tensor
+tensor_y = torch.as_tensor(Y[p])
 
 # Split data into training, validation and test 
 tr_= int(0.8*len(tensor_x))
@@ -192,42 +199,47 @@ class MLP_extended(MLP):
     print('Total time: {:4.1f} s  ({:4.1f} min)'.format(t_end-t_ini, (t_end-t_ini)/60))
 # end of MLP extended class    
 
+# Train
 
 my_mlp = MLP_extended()
-epochs=10
+if not ALL:
+  state_dict = torch.load('models/all_haplotypes_epochs20.pth')
+  my_mlp.load_state_dict(state_dict)
+
+
+epochs=20
 my_mlp.trainloop(epochs,trainloader,trainloader_nobatch,validloader_nobatch)
 
+  
+# Results
 
-for features, labels in trainloader_nobatch:
-  X_train = features.to(my_mlp.device)
-  Y_train = labels.to(my_mlp.device)
-
-def plot_traces(sae, epoch_0=True, max_points = 10):
+def plot_traces(mlp, epoch_0=True, max_points = 10,title=None):
   ''' plot evolution of loss during training '''
   ini_val = 0 if epoch_0 else 1
-  s = '.-' if sae.trained_epochs < 100 else '-'
+  s = '.-' if mlp.trained_epochs < 100 else '-'
   fig, ax = plt.subplots(1,2,figsize=(15,5))
+  if not (title is None): fig.suptitle(title)
       
-  ax[0].plot(range(ini_val, sae.trained_epochs+1), sae.traces['tr_loss'][ini_val:],s+'b',label='Training')
-  ax[0].plot(range(ini_val, sae.trained_epochs+1), sae.traces['val_loss'][ini_val:],s+'r',label='Validation')
+  ax[0].plot(range(ini_val, mlp.trained_epochs+1), mlp.traces['tr_loss'][ini_val:],s+'b',label='Training')
+  ax[0].plot(range(ini_val, mlp.trained_epochs+1), mlp.traces['val_loss'][ini_val:],s+'r',label='Validation')
   ax[0].set_title('Loss vs Epochs')
   ax[0].set_xlabel('Epochs')
-  ax[0].set_xticks(range(ini_val, sae.trained_epochs+1, max(1, int(sae.trained_epochs/max_points))))
+  ax[0].set_xticks(range(ini_val, mlp.trained_epochs+1, max(1, int(mlp.trained_epochs/max_points))))
   ax[0].set_ylabel('Loss')
   if epoch_0: ax[0].set_yscale('log')
 
-  ax[1].plot(range(ini_val, sae.trained_epochs+1), sae.traces['tr_acc'][ini_val:],s+'b',label='Training')
-  ax[1].plot(range(ini_val, sae.trained_epochs+1), sae.traces['val_acc'][ini_val:],s+'r',label='Validation')
+  ax[1].plot(range(ini_val, mlp.trained_epochs+1), mlp.traces['tr_acc'][ini_val:],s+'b',label='Training')
+  ax[1].plot(range(ini_val, mlp.trained_epochs+1), mlp.traces['val_acc'][ini_val:],s+'r',label='Validation')
   ax[1].set_title('Accuracy vs Epochs')
   ax[1].set_xlabel('Epochs')
-  ax[1].set_xticks(range(ini_val, sae.trained_epochs+1, max(1, int(sae.trained_epochs/max_points))))
+  ax[1].set_xticks(range(ini_val, mlp.trained_epochs+1, max(1, int(mlp.trained_epochs/max_points))))
   ax[1].set_ylim([0.2, 1])
   ax[1].set_ylabel('Accuracy')
 
   ax[0].legend()
   plt.show()
 
-plot_traces(my_mlp)
+plot_traces(my_mlp,title=title)
 
 # Accuracy in test:
 for features, labels in testloader_nobatch:
@@ -235,3 +247,11 @@ for features, labels in testloader_nobatch:
   Y_test = labels.to(my_mlp.device)
 test_acc = my_mlp.calc_acc(X_test, Y_test)
 print('Accuracy in test: {:.3f}'.format(test_acc.item()))
+
+
+# Save model
+name = 'all_haplotypes' if ALL else hp_types[0]
+filename = 'models/'+name+'_epochs'+str(my_mlp.trained_epochs)+'.pth'
+torch.save(my_mlp.state_dict(), filename)
+
+print('Model saved in:',filename)

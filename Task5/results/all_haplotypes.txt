@@ -1,0 +1,33 @@
+Pre-training with all haplotypes
+      Training instances   4800 (80%), 
+      Validation instances 600 (10%),
+      Test instances       600 (10%)
+Optimizer: Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.0005
+    maximize: False
+    weight_decay: 0
+)
+Nonlinearity: ReLU()
+Device: cuda
+Epoch  Train_loss  Valid_loss  Train_acc  Valid_acc  time(s)  min
+    0      0.6931      0.6932     0.5031     0.5000      0.4  0.0
+    1      0.6933      0.6932     0.5042     0.5000      0.5  0.0
+    2      0.6582      0.7532     0.8208     0.4917      0.5  0.0
+    4      0.4306      0.8175     0.9206     0.4800      0.4  0.0
+    6      0.3890      0.8329     0.9385     0.4600      0.4  0.0
+    8      0.3813      0.8156     0.9383     0.4917      0.5  0.0
+   10      0.3764      0.8107     0.9467     0.4883      0.5  0.0
+   12      0.3659      0.8093     0.9527     0.4967      0.5  0.0
+   14      0.3725      0.7975     0.9450     0.5083      0.5  0.0
+   16      0.3770      0.8105     0.9435     0.4967      0.5  0.0
+   18      0.3751      0.8120     0.9415     0.4933      0.5  0.0
+   20      0.3703      0.8107     0.9494     0.4917      0.5  0.0
+Trained 20 epochs (total 20)
+Total time:  9.8 s  ( 0.2 min)
+
+Accuracy in test: 0.535
+Model saved in: models/all_haplotypes_epochs20.pth
