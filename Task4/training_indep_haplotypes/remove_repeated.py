@@ -4,10 +4,10 @@
 import pandas as pd
 import zipfile
 
-#haplotypes = ['MHC_1_A']
 haplotypes = ['MHC_1_A','MHC_1_B','MHC_1_C','MHC_2_DP','MHC_2_DQ','MHC_2_DR']
 for h in haplotypes:
 
+	#Reading the csv and loading into a dataframe
 	data_path = 'training_indep_' + h + '_full.zip'
 	with zipfile.ZipFile(data_path,'r') as zip_ref:
 		zip_ref.extractall()
@@ -24,7 +24,8 @@ for h in haplotypes:
 
 	#Remove from the duplicated ones, the chains labeled as 0
 	positives = seq_dupl[seq_dupl['contains_epitope?'] != 0]
-	#Merge both df, the one with non duplicated sequences and the one containing de duplicated ones labeled as 1
+
+	#Merge both df, the one with non duplicated sequences and the one containing the duplicated ones labeled as 1
 	#the size obtained should be the same as sequences
 	final_df = seq_non_dupl.append(positives)
 

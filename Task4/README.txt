@@ -42,3 +42,14 @@ MHC_2_DR   9916/ 9916  4266.6      71.11     6130607 /  6130607  10.24 %
    1878652 MHC_2_DQ.csv   7.72559 %
    5589346 MHC_2_DR.csv  10.76267 %
   35703257 total
+  
+# resample.py
+- Datasets obtained in remove_repeated are higly unbalanced. Using imblearn, randomly undersamples the majority class until 50/50 is achieved
+#  Rows    Haplotype     Epitopes
+   3371080 MHC_1_A_balanced.csv  
+   4697984 MHC_1_B_balanced.csv  
+   1688542 MHC_1_C_balanced.csv  
+    608634 MHC_2_DP_balanced.csv 
+    290274 MHC_2_DQ_balanced.csv 
+   1203126 MHC_2_DR_balanced.csv 
+  11859640 total
