@@ -1,4 +1,5 @@
 # ignore swap vim files
 *.swp 
 # ignore big csvs
-*.csv_
+*.csv
+**/.conda/
