@@ -1,12 +1,17 @@
-Pre-train with all haplotypes: MODE=-1
-resulting weights in models/all_haplotypes_epochs20.pth
+TASK 5. NN for neoantigen prediction (training)
 
-Then refine training for each haplotype: MODE= 0,1,2,3,4, or 5
+If pre-train with all haplotypes: MODE=-1, run: python -u classifier.py
+If refine training with haplotype A: MODE=1, run: python -u classifier.py 1
+If refine training with haplotype B: MODE=2, run: python -u classifier.py 2
+If refine training with haplotype C: MODE=3, run: python -u classifier.py 3
 
 
 Default architecture:
-[1536, 1024, 512, 128, 32, 2]
+[1536, 2048, 512, 128, 32, 2]
 
 - Relu nonlinearities
 - Softmax after last layer
 - CrossEntropy loss
+
+
+resulting weights in models/
