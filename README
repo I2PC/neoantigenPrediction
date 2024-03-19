@@ -1,0 +1,9 @@
+Dataset 1. Epitopes / non-epitopes
+Dataset 2. Whole proteome
+
+Task 1: contains the whole proteome data
+Task 2: contains the code of the Protein Unet to predict secondary structure
+Task 3: contains code for BERT
+Task 4: contains the Epitopes/non-epitopes dataset 
+Task 5: contains the code to run and train the classifier
+Task 6: contains code to predict over new data and the pipeline needed to follow in the README.
